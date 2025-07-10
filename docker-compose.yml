@@ -9,7 +9,7 @@ services:
             POSTGRES_USER: ${DATABASE_USER}
             POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
         volumes:
-            - postgres_data:/var/lib/postgresql/data
+            - ./postgres_data:/var/lib/postgresql/data
         networks:
             - flowise_network
         deploy:
@@ -157,7 +157,7 @@ services:
             - REDIS_KEEP_ALIVE=${REDIS_KEEP_ALIVE}
             - ENABLE_BULLMQ_DASHBOARD=${ENABLE_BULLMQ_DASHBOARD}
         ports:
-            - '127.0.0.1:${PORT}:${PORT}'  # Bind to localhost only for security
+            - '172.16.215.69:3000:${PORT}'  # Bind to specific IP for network access
         networks:
             - flowise_network
         healthcheck:
@@ -167,7 +167,7 @@ services:
             retries: 3
             start_period: 60s
         volumes:
-            - flowise_data:/root/.flowise
+            - ./flowise_data:/root/.flowise
         entrypoint: /bin/sh -c "sleep 3; flowise start"
         security_opt:
             - no-new-privileges:true
@@ -175,11 +175,9 @@ services:
         tmpfs:
             - /tmp
         
-volumes:
-    flowise_data:
-        driver: local
-    postgres_data:
-        driver: local
+volumes: {}
+    # Using local directories instead of named volumes
+    # flowise_data and postgres_data are now mounted from current directory
 
 networks:
     flowise_network:
