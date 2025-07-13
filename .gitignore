@@ -18,6 +18,7 @@ logs/
 # Data directories
 flowise_data/
 postgres_data/
+weaviate_data/
 
 # Operating System
 .DS_Store
