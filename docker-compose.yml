@@ -157,7 +157,7 @@ services:
             - REDIS_KEEP_ALIVE=${REDIS_KEEP_ALIVE}
             - ENABLE_BULLMQ_DASHBOARD=${ENABLE_BULLMQ_DASHBOARD}
         ports:
-            - '172.16.215.69:3000:${PORT}'  # Bind to specific IP for network access
+            - '0.0.0.0:3000:${PORT}'  # Bind to specific IP for network access
         networks:
             - flowise_network
         healthcheck:

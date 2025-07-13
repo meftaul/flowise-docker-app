@@ -15,6 +15,10 @@ logs/
 # Docker
 .docker/
 
+# Data directories
+flowise_data/
+postgres_data/
+
 # Operating System
 .DS_Store
 Thumbs.db
