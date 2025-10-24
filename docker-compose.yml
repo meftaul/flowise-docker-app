@@ -8,7 +8,7 @@ services:
     - '8080'
     - --scheme
     - http
-    image: cr.weaviate.io/semitechnologies/weaviate:1.31.5
+    image: cr.weaviate.io/semitechnologies/weaviate:1.33.1
     ports:
     - 8080:8080
     - 50051:50051
@@ -23,7 +23,7 @@ services:
       CLUSTER_HOSTNAME: 'node1'
 
   flowise:
-    image: flowiseai/flowise:${FLOWISE_VERSION:-3.0.4}
+    image: flowiseai/flowise:${FLOWISE_VERSION:-3.0.8}
     container_name: flowise
     restart: unless-stopped
     ports:
