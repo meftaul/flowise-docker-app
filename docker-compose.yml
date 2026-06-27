@@ -2,50 +2,77 @@
 services:
   weaviate:
     command:
-    - --host
-    - 0.0.0.0
-    - --port
-    - '8080'
-    - --scheme
-    - http
-    image: cr.weaviate.io/semitechnologies/weaviate:1.33.1
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --scheme
+      - http
+    image: cr.weaviate.io/semitechnologies/weaviate:${WEAVIATE_VERSION:-1.38.2}
+    container_name: weaviate
     ports:
-    - 8080:8080
-    - 50051:50051
+      - "${WEAVIATE_PORT:-8080}:8080"
+      - "${WEAVIATE_GRPC_PORT:-50051}:50051"
     volumes:
-    - ./weaviate_data:/var/lib/weaviate
-    restart: on-failure:0
+      - ./weaviate_data:/var/lib/weaviate
+    restart: unless-stopped
     environment:
-      QUERY_DEFAULTS_LIMIT: 25
-      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
-      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
-      ENABLE_API_BASED_MODULES: 'true'
-      CLUSTER_HOSTNAME: 'node1'
+      QUERY_DEFAULTS_LIMIT: ${WEAVIATE_QUERY_DEFAULTS_LIMIT:-25}
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: ${WEAVIATE_AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED:-'true'}
+      PERSISTENCE_DATA_PATH: ${WEAVIATE_PERSISTENCE_DATA_PATH:-/var/lib/weaviate}
+      DEFAULT_VECTORIZER_MODULE: ${WEAVIATE_DEFAULT_VECTORIZER_MODULE:-none}
+      ENABLE_API_BASED_MODULES: ${WEAVIATE_ENABLE_API_BASED_MODULES:-'true'}
+      CLUSTER_HOSTNAME: ${WEAVIATE_CLUSTER_HOSTNAME:-node1}
+    networks:
+      - flowise_network
 
   flowise:
-    image: flowiseai/flowise:${FLOWISE_VERSION:-3.0.8}
+    image: flowiseai/flowise:${FLOWISE_VERSION:-3.1.3}
     container_name: flowise
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"
     environment:
       - PORT=${PORT:-3000}
-      - FLOWISE_USERNAME=${FLOWISE_USERNAME:-admin}
-      - FLOWISE_PASSWORD=${FLOWISE_PASSWORD:-admin123}
+      # Storage paths (SQLite database, API keys, encryption key, logs)
       - DATABASE_PATH=${DATABASE_PATH:-/root/.flowise}
       - APIKEY_PATH=${APIKEY_PATH:-/root/.flowise}
       - SECRETKEY_PATH=${SECRETKEY_PATH:-/root/.flowise}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - LOG_PATH=${LOG_PATH:-/root/.flowise/logs}
+      - BLOB_STORAGE_PATH=${BLOB_STORAGE_PATH:-/root/.flowise/storage}
+      # Persist the encryption key so stored credentials survive restarts/upgrades
+      - FLOWISE_SECRETKEY_OVERWRITE=${FLOWISE_SECRETKEY_OVERWRITE}
+      # Authentication (Passport.js + JWT cookies — Flowise v3.x).
+      # On first launch, open the UI and register the admin account.
+      - JWT_AUTH_TOKEN_SECRET=${JWT_AUTH_TOKEN_SECRET}
+      - JWT_REFRESH_TOKEN_SECRET=${JWT_REFRESH_TOKEN_SECRET}
+      - JWT_ISSUER=${JWT_ISSUER:-Flowise}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-Flowise}
+      - JWT_TOKEN_EXPIRY_IN_MINUTES=${JWT_TOKEN_EXPIRY_IN_MINUTES:-360}
+      - JWT_REFRESH_TOKEN_EXPIRY_IN_MINUTES=${JWT_REFRESH_TOKEN_EXPIRY_IN_MINUTES:-43200}
+      - EXPRESS_SESSION_SECRET=${EXPRESS_SESSION_SECRET}
+      - TOKEN_HASH_SECRET=${TOKEN_HASH_SECRET}
+      # Legacy credentials — only used to migrate an existing pre-v3 instance.
+      # Leave unset for fresh installs.
+      - FLOWISE_USERNAME=${FLOWISE_USERNAME:-}
+      - FLOWISE_PASSWORD=${FLOWISE_PASSWORD:-}
     volumes:
       - ./flowise_data:/root/.flowise
     networks:
       - flowise_network
     # depends_on:
-    #   weaviate:
-    #     condition: service_healthy
+    #   - weaviate
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
